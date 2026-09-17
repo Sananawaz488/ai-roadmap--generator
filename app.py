@@ -1,64 +1,193 @@
-import os
-
-import gradio as gr
-from dotenv import load_dotenv
+import streamlit as st
 from groq import Groq
 
 
 # ============================================================
-# Load environment variables
+# PAGE CONFIGURATION
 # ============================================================
 
-load_dotenv()
-
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-
-# ============================================================
-# Groq Client
-# ============================================================
-
-if not GROQ_API_KEY:
-    client = None
-else:
-    client = Groq(api_key=GROQ_API_KEY)
+st.set_page_config(
+    page_title="AI Learning Roadmap Generator",
+    page_icon="🎓",
+    layout="wide"
+)
 
 
 # ============================================================
-# Generate Learning Roadmap
+# CUSTOM STYLING
 # ============================================================
 
-def generate_roadmap(domain, level, duration, hours):
+st.markdown(
+    """
+    <style>
 
-    # Check API key
-    if not GROQ_API_KEY:
-        return (
-            "⚠️ Groq API key is not configured.\n\n"
-            "Please add your GROQ_API_KEY to the .env file."
+    .main-title {
+        font-size: 42px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 5px;
+    }
+
+    .subtitle {
+        text-align: center;
+        font-size: 18px;
+        color: #666;
+        margin-bottom: 30px;
+    }
+
+    .roadmap-box {
+        padding: 20px;
+        border-radius: 12px;
+        background-color: #f8f9fa;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# TITLE
+# ============================================================
+
+st.markdown(
+    '<div class="main-title">🎓 AI Learning Roadmap Generator</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+    <div class="subtitle">
+    Create a personalized learning roadmap using AI.
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# CHECK GROQ API KEY
+# ============================================================
+
+if "GROQ_API_KEY" not in st.secrets:
+
+    st.error(
+        "⚠️ Groq API key is not configured."
+    )
+
+    st.info(
+        "Please add GROQ_API_KEY in Streamlit Cloud Secrets."
+    )
+
+    st.stop()
+
+
+# ============================================================
+# CREATE GROQ CLIENT
+# ============================================================
+
+client = Groq(
+    api_key=st.secrets["GROQ_API_KEY"]
+)
+
+
+# ============================================================
+# INPUT SECTION
+# ============================================================
+
+st.subheader("📝 Tell us about your learning goal")
+
+col1, col2 = st.columns(2)
+
+
+with col1:
+
+    domain = st.text_input(
+        "📚 Learning Domain / Field",
+        placeholder=(
+            "Example: Artificial Intelligence, "
+            "Cybersecurity, Web Development"
+        )
+    )
+
+
+    level = st.selectbox(
+        "🎯 Current Skill Level",
+        [
+            "Beginner",
+            "Intermediate",
+            "Advanced"
+        ]
+    )
+
+
+with col2:
+
+    duration = st.text_input(
+        "📅 Learning Duration",
+        placeholder="Example: 3 months, 6 months, 1 year"
+    )
+
+
+    hours = st.number_input(
+        "⏰ Study Hours Per Day",
+        min_value=1,
+        max_value=12,
+        value=2,
+        step=1
+    )
+
+
+# ============================================================
+# GENERATE BUTTON
+# ============================================================
+
+generate_button = st.button(
+    "🚀 Generate Learning Roadmap",
+    type="primary",
+    use_container_width=True
+)
+
+
+# ============================================================
+# ROADMAP GENERATION
+# ============================================================
+
+if generate_button:
+
+    # --------------------------------------------------------
+    # Validate inputs
+    # --------------------------------------------------------
+
+    if not domain.strip():
+
+        st.warning(
+            "⚠️ Please enter your learning domain."
         )
 
-    # Check inputs
-    if not domain or not domain.strip():
-        return "⚠️ Please enter a learning domain."
+        st.stop()
 
-    if not duration or not duration.strip():
-        return "⚠️ Please enter your learning duration."
 
-    if not hours:
-        return "⚠️ Please enter your available study hours."
+    if not duration.strip():
 
-    # Convert hours to readable value
-    hours = int(hours)
+        st.warning(
+            "⚠️ Please enter your learning duration."
+        )
 
-    # ========================================================
+        st.stop()
+
+
+    # --------------------------------------------------------
     # AI Prompt
-    # ========================================================
+    # --------------------------------------------------------
 
     prompt = f"""
-You are an expert learning roadmap designer and educational
-curriculum planner.
+You are an expert learning roadmap designer and
+educational curriculum planner.
 
-Create a personalized and realistic learning roadmap for the user.
+Create a personalized, practical and realistic
+learning roadmap for the following learner.
 
 USER INFORMATION
 ----------------
@@ -67,246 +196,184 @@ Current Skill Level: {level}
 Learning Duration: {duration}
 Study Hours Per Day: {hours}
 
-IMPORTANT INSTRUCTIONS
+IMPORTANT REQUIREMENTS
 ----------------------
-- Make the roadmap realistic for the available study time.
-- Start from the learner's current level.
-- Progress gradually from fundamentals to advanced concepts.
-- Do not overload the learner.
-- Focus on practical learning.
-- Include theory, practice, projects, and revision.
-- Use clear Markdown formatting.
-- Keep the roadmap easy to follow.
+
+1. Make the roadmap realistic for the available time.
+
+2. Start from the learner's current skill level.
+
+3. Progress gradually from basic concepts
+   to advanced concepts.
+
+4. Do not overload the learner.
+
+5. Include theory, practice and projects.
+
+6. Use clear Markdown formatting.
+
+7. Make the roadmap easy to follow.
 
 The roadmap MUST include:
 
-1. 🎯 Overall Learning Goal
+## 🎯 1. Overall Learning Goal
 
-Explain what the learner should be able to do by the end.
+Explain what the learner should achieve
+by the end of the roadmap.
 
-2. 📋 Prerequisites
+## 📋 2. Prerequisites
 
-Mention the knowledge or skills required before starting.
-If there are no prerequisites, clearly say so.
+List the knowledge and skills needed
+before starting.
 
-3. 🗺️ Learning Roadmap
+If there are no prerequisites,
+clearly mention that.
 
-Divide the learning journey into logical phases.
+## 🗺️ 3. Learning Phases
+
+Divide the learning journey into
+logical phases.
 
 For each phase include:
+
 - Phase name
 - Duration
 - Main topics
 - Learning objectives
 - Practice activities
 
-4. 📅 Weekly Learning Plan
+## 📅 4. Weekly Learning Plan
 
-Create a week-by-week plan based on the user's duration.
+Create a week-by-week learning plan
+based on the user's duration.
 
-For every week include:
+For each week include:
+
 - Topics
 - Learning objectives
 - Practice tasks
 - Expected outcome
 
-5. 💻 Practice Exercises
+## 💻 5. Practice Exercises
 
-Give practical exercises suitable for the learner's level.
+Give practical exercises appropriate
+for the learner's current level.
 
-6. 🛠️ Mini Projects
+## 🛠️ 6. Mini Projects
 
-Suggest several small projects that help the learner
-apply the concepts.
+Suggest several small projects that
+help the learner apply the concepts.
 
-7. 🚀 Final Capstone Project
+## 🚀 7. Final Capstone Project
 
-Design ONE realistic final project that combines
-the major skills learned.
+Create ONE realistic final project.
 
 Include:
+
 - Project idea
-- Features
+- Main features
 - Skills used
-- Suggested development stages
+- Development stages
 
-8. 📚 Recommended Learning Resources
+## 📚 8. Recommended Learning Resources
 
-Suggest useful types of resources such as:
-- Documentation
+Recommend useful resource TYPES such as:
+
+- Official documentation
 - Courses
 - Tutorials
 - Books
 - Practice platforms
 
-Do not invent specific URLs.
+Do not invent URLs.
 
-9. 🧠 Skills at the End
+## 🧠 9. Skills at the End
 
-List the skills the learner should have after completing
-the roadmap.
+List the skills the learner should have
+after completing the roadmap.
 
-10. ✅ Progress Checklist
+## ✅ 10. Progress Checklist
 
-Create a simple checklist the learner can use to track progress.
+Create a simple checklist that the learner
+can use to track progress.
 
-Make the roadmap practical, structured, motivating,
-and appropriate for the user's current skill level.
+Make the roadmap practical, structured,
+realistic and suitable for the user's
+current skill level.
 """
 
-    # ========================================================
-    # Send request to Groq
-    # ========================================================
-
-    try:
-
-        response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are an expert educational roadmap "
-                        "designer. Give practical, structured, "
-                        "realistic learning plans."
-                    )
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.7,
-            max_tokens=8000
-        )
-
-        # Get AI response
-        roadmap = response.choices[0].message.content
-
-        return roadmap
-
-    except Exception as e:
-
-        return (
-            "❌ Something went wrong while generating the roadmap.\n\n"
-            f"Error: {str(e)}"
-        )
-
-
-# ============================================================
-# Gradio UI
-# ============================================================
-
-with gr.Blocks(
-    title="AI Learning Roadmap Generator"
-) as app:
-
-    gr.Markdown(
-        """
-        # 🎓 AI Learning Roadmap Generator
-
-        ### Build your personalized learning journey with AI
-
-        Enter your learning domain, current skill level,
-        available learning duration, and daily study time.
-
-        The AI will create a structured roadmap from
-        fundamentals to advanced concepts.
-        """
-    )
-
-    gr.Markdown("---")
 
     # --------------------------------------------------------
-    # Learning Domain
+    # Call Groq
     # --------------------------------------------------------
 
-    domain = gr.Textbox(
-        label="📚 Learning Domain / Field",
-        placeholder=(
-            "Example: Artificial Intelligence, "
-            "Cybersecurity, Web Development, Data Science"
-        ),
-        lines=1
-    )
+    with st.spinner(
+        "🤖 Creating your personalized roadmap..."
+    ):
 
-    # --------------------------------------------------------
-    # Skill Level
-    # --------------------------------------------------------
+        try:
 
-    level = gr.Dropdown(
-        choices=[
-            "Beginner",
-            "Intermediate",
-            "Advanced"
-        ],
-        value="Beginner",
-        label="🎯 Current Skill Level"
-    )
+            response = client.chat.completions.create(
 
-    # --------------------------------------------------------
-    # Learning Duration
-    # --------------------------------------------------------
+                model="openai/gpt-oss-120b",
 
-    duration = gr.Textbox(
-        label="📅 Learning Duration",
-        placeholder="Example: 3 months, 6 months, 1 year"
-    )
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an expert educational "
+                            "roadmap designer."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
 
-    # --------------------------------------------------------
-    # Study Hours
-    # --------------------------------------------------------
+                temperature=0.7,
 
-    hours = gr.Number(
-        label="⏰ Study Hours Per Day",
-        value=2,
-        minimum=1,
-        maximum=12,
-        step=1
-    )
-
-    # --------------------------------------------------------
-    # Generate Button
-    # --------------------------------------------------------
-
-    generate_button = gr.Button(
-        "🚀 Generate Learning Roadmap",
-        variant="primary"
-    )
-
-    # --------------------------------------------------------
-    # Output
-    # --------------------------------------------------------
-
-    gr.Markdown("## 🗺️ Your Learning Roadmap")
-
-    roadmap_output = gr.Markdown(
-        value=(
-            "Your personalized roadmap will appear here..."
-        )
-    )
-
-    # --------------------------------------------------------
-    # Button Event
-    # --------------------------------------------------------
-
-    generate_button.click(
-        fn=generate_roadmap,
-        inputs=[
-            domain,
-            level,
-            duration,
-            hours
-        ],
-        outputs=roadmap_output
-    )
+                max_tokens=8000
+            )
 
 
-# ============================================================
-# Launch Application
-# ============================================================
+            roadmap = response.choices[0].message.content
 
-if __name__ == "__main__":
-    app.launch(
-        share=True
-    )
+
+            # ------------------------------------------------
+            # Display result
+            # ------------------------------------------------
+
+            st.success(
+                "✅ Your learning roadmap has been generated!"
+            )
+
+            st.markdown("---")
+
+            st.markdown(
+                "## 🗺️ Your Personalized Learning Roadmap"
+            )
+
+            st.markdown(roadmap)
+
+
+            # ------------------------------------------------
+            # Download roadmap
+            # ------------------------------------------------
+
+            st.download_button(
+                label="📥 Download Roadmap",
+                data=roadmap,
+                file_name="learning_roadmap.md",
+                mime="text/markdown"
+            )
+
+
+        except Exception as e:
+
+            st.error(
+                "❌ Something went wrong while generating "
+                "the roadmap."
+            )
+
+            st.code(str(e))
